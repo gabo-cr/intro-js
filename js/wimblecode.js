@@ -176,10 +176,27 @@ const createTournament = (...newPlayersNames) => {
 
 console.clear();
 
+// ** Simulación
 try {
     const tournament = createTournament('Alberto Casero', 'David Jiménez', 'Javier de Miguel', 'Eduardo Aguilar');
     tournament.createMatches();
-    tournament.start(true);
+    tournament.start(true); // Cambiar a false para dejar de ver el score punto a punto
 } catch(e) {
     console.error(e);
 }
+// ** Fin de Simulación
+
+// ** Partido punto a punto
+// Descomentar las siguientes líneas para probar Wimblecode en un partido punto a punto.
+/*
+const match = new Match('Alberto Casero', 'Javier de Miguel');
+const player1 = match.player1;
+const player2 = match.player2;
+
+while (!player1.winner && !player2.winner) {
+    const randomPlayerNumber = Math.floor(Math.random() * 2) + 1;
+    match.pointWonBy(randomPlayerNumber, true);
+    match.getScore();
+}
+*/
+// ** Fin de Partido punto a punto
