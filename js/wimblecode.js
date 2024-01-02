@@ -7,8 +7,8 @@ class Player {
         this.points = '0';
     }
 
-    addPoint(player2) {
-        console.log(`${this.name} wins the point!`);
+    addPoint(player2, verbose=false) {
+        if (verbose) console.log(`${this.name} wins the point!`);
 
         if (this.points === '0') {
             this.points = '15';
@@ -23,27 +23,27 @@ class Player {
                 this.points = '40';
                 player2.points = '40';
             } else {
-                this.addRound(player2);
+                this.addRound(player2, verbose);
             }
         } else if (this.points === 'Adv') {
-            this.addRound(player2);
+            this.addRound(player2, verbose);
         }
     }
 
-    addRound(player2) {
-        console.log(`${this.name} wins the round!`);
+    addRound(player2, verbose=false) {
+        if (verbose) console.log(`${this.name} wins the round!`);
         this.points = '0';
         player2.points = '0';
         this.rounds++;
 
         const difference = Math.abs(this.rounds - player2.rounds);
         if ((this.rounds >= 4 && difference >= 2) || (this.rounds === 7)) {
-            this.addGame(player2);
+            this.addGame(player2, verbose);
         }
     }
 
-    addGame(player2) {
-        console.log(`${this.name} wins the game!`);
+    addGame(player2, verbose=false) {
+        if (verbose) console.log(`${this.name} wins the game!`);
         this.rounds = 0;
         player2.rounds = 0;
         this.games++;
@@ -53,62 +53,106 @@ class Player {
         }
     }
 
-    addWinner(player2) {
-        console.log(`${this.name} wins the match!`);
+    addWinner(player2, verbose=false) {
+        if (verbose) console.log(`${this.name} wins the match!`);
         this.games = 0;
         player2.games = 0;
         this.winner = true;
     }
 };
 
-const createMatch = (player1Name, player2Name) => {
-    const player1 = new Player(player1Name);
-    const player2 = new Player(player2Name);
+const createTournament = (...newPlayersNames) => {
+    console.log('The tournament is about to start!');
+    const NUMBER_OF_PLAYERS = 4;
+    const players = newPlayersNames.length === NUMBER_OF_PLAYERS ? newPlayersNames.map(name => new Player(name)) : [];
+    const matches = [];
+
+    if (players.length === 0) {
+        throw new Error(`In order to create a tournament there has to be exactly ${NUMBER_OF_PLAYERS} players.`);
+    }
+
+    const createMatches = () => {
+        console.log('Running the draw to set the starting matches for the tournament...');
+        const randomIndexes = [];
+        while (randomIndexes.length < NUMBER_OF_PLAYERS) {
+            const randomIndex = Math.floor(Math.random() * NUMBER_OF_PLAYERS);
+            if (!randomIndexes.includes(randomIndex)) {
+                randomIndexes.push(randomIndex);
+            }
+        }
+
+        for (let i=0; i<(NUMBER_OF_PLAYERS/2) ; i++) {
+            matches.push({
+                player1: players[randomIndexes.at(i)],
+                player2: players[randomIndexes.at(-1-i)],
+            });
+        }
+        console.log('The draw left the following matches: ', matches.reduce((accum, match) => accum += `\n-${match.player1.name} vs. ${match.player2.name}`, ''));
+    };
+
+    const start = () => {
+        const winners = [];
+        if (matches.length === 0) {
+            throw new Error(`Can't start the tournament without running the draw to set the starting matches.`);
+        }
+
+        for (let i=0; i<matches.length ; i++) {
+            const winner = simulateMatch(matches[i].player1, matches[i].player2, true);
+            winners.push(winner);
+        }
+
+        console.log('---------------------------------------------------------------------');
+        console.log(`Winners of the first round: ${winners.map(winner => winner.name).join(', ')}`);
+        console.log('---------------------------------------------------------------------');
+        
+        const champion = simulateMatch(winners[0], winners[1], true);
+        console.log('---------------------------------------------------------------------');
+        console.log(`Congratulations to ${champion.name}, the CHAMPION of this tournament!`);
+        console.log('---------------------------------------------------------------------');
+    };
+
+    const simulateMatch = (player1, player2, verbose=false) => {
+        const match = createMatch(player1, player2, verbose);
+
+        while (!player1.winner && !player2.winner) {
+            const randomPlayerNumber = Math.floor(Math.random() * 2) + 1;
+            match.pointWonBy(randomPlayerNumber);
+            if (verbose) match.getScore();
+        }
+        match.getScore();
+
+        return player1.winner ? player1 : player2;
+    };
+
+    return { players, createMatches, start };
+};
+
+const createMatch = (player1, player2, verbose=false) => {
     console.log(`The match between ${player1.name} and ${player2.name} starts now!`);
+    player1.winner = false;
+    player2.winner = false;
     
     const pointWonBy = (playerNumber) => {
         if (playerNumber === 1) {
-            player1.addPoint(player2);
+            player1.addPoint(player2, verbose);
         } else if (playerNumber === 2) {
-            player2.addPoint(player1);
+            player2.addPoint(player1, verbose);
         }
     };
 
     const getScore = () => {
         if (!player1.winner && !player2.winner) {
-            console.log(`Player | Games | Rounds | Points\n${player1.name}   |   ${player1.games}   |   ${player1.rounds}    |   ${player1.points}\n${player2.name}   |   ${player2.games}   |   ${player2.rounds}    |   ${player2.points}`);
+            console.log(`${'Player'.padEnd(15)} | Games | Rounds | Points\n${player1.name.padEnd(15)} |   ${player1.games}   |   ${player1.rounds}    |   ${player1.points}\n${player2.name.padEnd(15)} |   ${player2.games}   |   ${player2.rounds}    |   ${player2.points}`);
         } else if (player1.winner) {
             console.log(`${player1.name} is the winner of this match!`);
         }
     };
 
-    const getRoundsScore = () => {
-        console.log(`${player1.name} | ${player1.rounds} | ${player1.points}\n${player2.name} | ${player2.rounds} | ${player2.points}`);
-    };
-
-    const getCurrentRoundScore = () => {
-        console.log(`${player1.name} | ${player1.points}\n${player2.name} | ${player2.points}`);
-    };
-
-
-    return { pointWonBy, getScore, getRoundsScore, getCurrentRoundScore };
+    return { pointWonBy, getScore };
 };
-
 
 console.clear();
 
-const match1 = createMatch('José', 'Luis');
-
-match1.pointWonBy(1);
-match1.pointWonBy(1);
-match1.pointWonBy(2);
-match1.pointWonBy(2);
-match1.pointWonBy(1);
-match1.pointWonBy(2);
-match1.pointWonBy(1);
-match1.pointWonBy(2);
-match1.pointWonBy(2);
-match1.pointWonBy(1);
-match1.pointWonBy(2);
-match1.pointWonBy(2);
-match1.getScore();
+const tournament = createTournament('Alberto C.', 'David J.', 'Javier M.', 'Edu Aguilar');
+tournament.createMatches();
+tournament.start();
